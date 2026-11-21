@@ -3,7 +3,7 @@ package transport
 import (
 	"fmt"
 	"net/http"
-	"time"
+	"sync"
 )
 
 type Multiplexer struct {
@@ -18,39 +18,37 @@ func (m Multiplexer) formatMessage(path string, response *http.Response) (messag
 	return
 }
 
-func (m *Multiplexer) fetch(path string, c chan string) {
+func (m *Multiplexer) fetch(path string) {
 	var message string
-	fmt.Println("path")
 	response, err := m.httpClient.GET(path)
 	if err != nil {
 		message = fmt.Sprintf("Error ocurred while fetching %s - %s", path, err.Error())
-		c <- message
+		fmt.Println(message)
 		return
 	}
 
 	if response.StatusCode != 404 {
 		message = m.formatMessage(path, response)
-		c <- message
+		fmt.Println(message)
 		return
 	}
 
-	c <- message
 	return
 }
 
-func printMessage(c chan string) {
-	message := <-c
-	fmt.Println(message)
-}
-
 func (m *Multiplexer) Exec() {
-	messageChan := make(chan string)
+	var wg sync.WaitGroup
+
 	for _, path := range m.pathList {
-		go m.fetch(path, messageChan)
-		go printMessage(messageChan)
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			m.fetch(path)
+		}()
 	}
 
-	time.Sleep(time.Second * 30)
+	wg.Wait()
 }
 
 func NewMultiplexer(pathList []string, httpclient HTTPClient) *Multiplexer {

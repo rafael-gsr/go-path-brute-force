@@ -2,5 +2,12 @@
 package globaltypes
 
 type BruteForce interface {
-	GetHostAndWordlist() (host string, wordlist string)
+	ParseCommands() BruteForceRequest
+}
+
+type BruteForceRequest interface {
+	Host() string
+	WordListPath() string
+	Headers() map[string]string
+	Cookies() map[string]string
 }

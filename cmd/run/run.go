@@ -10,15 +10,20 @@ import (
 
 func main() {
 	command := command.NewBruteForce()
-	host, wordlist := command.GetHostAndWordlist()
-	fileLines, err := file.ReadFile(wordlist)
-	fmt.Println("host, wordlist ", host, wordlist)
-	fmt.Println("file lines ", fileLines)
+	request := command.ParseCommands()
+
+	fileLines, err := file.ReadFile(request.WordListPath())
 	if err != nil {
-		panic(err)
+		fmt.Println("Error while reading wordlist: ", err)
+		return
 	}
 
-	httpClient := transport.NewHTTPClient(host)
+	httpClient, err := transport.NewHTTPClient(request)
+	if err != nil {
+		fmt.Println("Error while creating client: ", err)
+		return
+	}
+
 	multiplexer := transport.NewMultiplexer(fileLines, *httpClient)
 	multiplexer.Exec()
 }
